@@ -1,0 +1,25 @@
+name: Windows-RDP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Remote Desktop
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 0
+      - name: Install and Run CRD
+        run: |
+          $installer = "$env:TEMP\chromeremotedesktophost.msi"
+          Invoke-WebRequest -Uri "https://dl.google.com/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi" -OutFile $installer
+          Start-Process msiexec.exe -ArgumentList "/i $installer /quiet /norestart" -Wait
+          ${{ secrets.CRD_CODE }} -pin=123456
+      - name: Keep Alive
+        run: |
+          while ($true) {
+            Start-Sleep -Seconds 3600
+          }
